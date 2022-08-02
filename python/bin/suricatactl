@@ -31,8 +31,9 @@ else:
     version_info = sys.version_info
     pyver = "%d.%d" % (version_info.major, version_info.minor)
     path = os.path.join(
-        exec_dir, "..", "lib", "python%s" % (pyver), "site-packages",
-        "suricata")
+        exec_dir, "..", "lib", f"python{pyver}", "site-packages", "suricata"
+    )
+
     if os.path.exists(path):
         sys.path.insert(0, os.path.dirname(path))
 

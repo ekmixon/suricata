@@ -4,10 +4,7 @@ import sys
 import os
 from string import Template
 
-if len(sys.argv) == 2:
-    SRC_DIR = sys.argv[1]
-else:
-    SRC_DIR = "../../src/"
+SRC_DIR = sys.argv[1] if len(sys.argv) == 2 else "../../src/"
 
 
 class Structure:
@@ -32,11 +29,11 @@ for fname in dirList:
         for line in open(os.path.join(SRC_DIR, fname)):
             if "coccinelle:" in line:
                 m = re.search("coccinelle: (.*) \*\/", line)
-                if "()" not in m.group(1):
-                    struct = Structure(m.group(1))
+                if "()" not in m[1]:
+                    struct = Structure(m[1])
                     struct_list.append(struct)
                 else:
-                    function = SetterGetter(m.group(1))
+                    function = SetterGetter(m[1])
                     setter_getter_list.append(function)
 
 header = "@flags@"
@@ -47,8 +44,7 @@ setter_getter = [x.function for x in setter_getter_list]
 if len(setter_getter):
     header += "\nidentifier NotSetterGetter !~ \"^(%s)$\";" % ("|".join(setter_getter))
 
-i = 0
-for struct in struct_list:
+for i, struct in enumerate(struct_list):
     header += """
 %s *struct%d;
 identifier struct_flags%d =~ "^(?!%s).+";""" % (struct.struct, i, i, struct.values)
@@ -60,8 +56,6 @@ struct%d->%s@p1 & struct_flags%d
 |
 struct%d->%s@p1 &= ~struct_flags%d
 """ % (i, struct.flags, i, i, struct.flags, i, i, struct.flags, i))
-
-    i += 1
 
 print(header)
 print("position p1;")
@@ -87,7 +81,6 @@ print "Invalid usage of flags field at %s:%s, flags value is incorrect (wrong fa
 import sys
 sys.exit(1)""")
 
-i = 1
 setter_template = """
 @settergetter${i}@
 identifier SetterGetter =~ "${function}";
@@ -106,10 +99,11 @@ import sys
 sys.exit(1)
 """
 
-for sg in setter_getter_list:
-    prefix_param = ""
-    for index in list(range(1, sg.params[1])):
-        prefix_param += "param%d, " % (index)
+for i, sg in enumerate(setter_getter_list, start=1):
+    prefix_param = "".join(
+        "param%d, " % (index) for index in list(range(1, sg.params[1]))
+    )
+
     if sg.params[1] < sg.params[0]:
         suffix_param = ", " + ", ".join(["param%d" % (index + 1) for index in list(range(sg.params[1], sg.params[0]))])
     else:
@@ -118,4 +112,3 @@ for sg in setter_getter_list:
     params_line = ", ".join(["param%d" % (x) for x in params_elts])
     print(Template(setter_template).substitute(i=i, function=sg.function, value=sg.value,
                 prefix_param=prefix_param, suffix_param=suffix_param, params_line=params_line))
-    i += 1

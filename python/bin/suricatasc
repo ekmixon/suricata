@@ -31,8 +31,9 @@ else:
     version_info = sys.version_info
     pyver = "%d.%d" % (version_info.major, version_info.minor)
     path = os.path.join(
-        exec_dir, "..", "lib", "python%s" % (pyver), "site-packages",
-        "suricata")
+        exec_dir, "..", "lib", f"python{pyver}", "site-packages", "suricata"
+    )
+
     if os.path.exists(path):
         sys.path.insert(0, os.path.dirname(path))
 
@@ -62,10 +63,10 @@ sc = SuricataSC(SOCKET_PATH, verbose=args.verbose)
 try:
     sc.connect()
 except SuricataNetException as err:
-    print("Unable to connect to socket %s: %s" % (SOCKET_PATH, err), file=sys.stderr)
+    print(f"Unable to connect to socket {SOCKET_PATH}: {err}", file=sys.stderr)
     sys.exit(1)
 except SuricataReturnException as err:
-    print("Unable to negotiate version with server: %s" % (err), file=sys.stderr)
+    print(f"Unable to negotiate version with server: {err}", file=sys.stderr)
     sys.exit(1)
 
 if args.command:
@@ -81,10 +82,10 @@ if args.command:
 try:
     sc.interactive()
 except SuricataNetException as err:
-    print("Communication error: %s" % (err))
+    print(f"Communication error: {err}")
     sys.exit(1)
 except SuricataReturnException as err:
-    print("Invalid return from server: %s" % (err))
+    print(f"Invalid return from server: {err}")
     sys.exit(1)
 
 print("[+] Quit command client")

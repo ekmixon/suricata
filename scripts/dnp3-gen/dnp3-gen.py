@@ -214,10 +214,7 @@ def has_freeable_types(fields):
     freeable_types = [
         "bytearray",
     ]
-    for field in fields:
-        if field["type"] in freeable_types:
-            return True
-    return False
+    return any(field["type"] in freeable_types for field in fields)
 
 def is_integer_type(datatype):
     integer_types = [
@@ -241,17 +238,17 @@ def to_type(datatype):
     if datatype in type_map:
         return type_map[datatype]
     else:
-        raise Exception("Unknown datatype: %s" % (datatype))
+        raise Exception(f"Unknown datatype: {datatype}")
 
 def generate(template, filename, context):
-    print("Generating %s." % (filename))
+    print(f"Generating {filename}.")
     try:
         env = jinja2.Environment(trim_blocks=True)
         output = env.from_string(template).render(context)
         with open(filename, "w") as fileobj:
             fileobj.write(output)
     except Exception as err:
-        print("Failed to generate %s: %s" % (filename, err))
+        print(f"Failed to generate {filename}: {err}")
         sys.exit(1)
 
 def raise_helper(msg):
@@ -330,12 +327,17 @@ typedef struct DNP3ObjectG{{object.group}}V{{object.variation}}_ {
         code = env.from_string(template).render(context)
         content = open(filename).read()
         content = re.sub(
-            "(%s).*(%s)" % (re.escape(IN_PLACE_START), re.escape(IN_PLACE_END)),
-            r"\1%s\2" % (code), content, 1, re.M | re.DOTALL)
+            f"({re.escape(IN_PLACE_START)}).*({re.escape(IN_PLACE_END)})",
+            r"\1%s\2" % (code),
+            content,
+            1,
+            re.M | re.DOTALL,
+        )
+
         open(filename, "w").write(content)
-        print("Updated %s." % (filename))
+        print(f"Updated {filename}.")
     except Exception as err:
-        print("Failed to update %s: %s" % (filename, err), file=sys.stderr)
+        print(f"Failed to update {filename}: {err}", file=sys.stderr)
         sys.exit(1)
 
 def gen_object_decoders(context):
@@ -646,12 +648,17 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
         code = env.from_string(template).render(context)
         content = open(filename).read()
         content = re.sub(
-            "(%s).*(%s)" % (re.escape(IN_PLACE_START), re.escape(IN_PLACE_END)),
-            r"\1%s\n\2" % (code), content, 1, re.M | re.DOTALL)
+            f"({re.escape(IN_PLACE_START)}).*({re.escape(IN_PLACE_END)})",
+            r"\1%s\n\2" % (code),
+            content,
+            1,
+            re.M | re.DOTALL,
+        )
+
         open(filename, "w").write(content)
-        print("Updated %s." % (filename))
+        print(f"Updated {filename}.")
     except Exception as err:
-        print("Failed to update %s: %s" % (filename, err), file=sys.stderr)
+        print(f"Failed to update {filename}: {err}", file=sys.stderr)
         sys.exit(1)
 
 def preprocess_object(obj):
@@ -676,8 +683,10 @@ def preprocess_object(obj):
     ]
 
     if "unimplemented" in obj:
-        print("Object not implemented: %s:%s: %s" % (
-            str(obj["group"]), str(obj["variation"]), obj["unimplemented"]))
+        print(
+            f'Object not implemented: {str(obj["group"])}:{str(obj["variation"])}: {obj["unimplemented"]}'
+        )
+
         return None
 
     for key, val in obj.items():
@@ -700,9 +709,7 @@ def preprocess_object(obj):
             break
 
         if field["type"] == "bstr8":
-            width = 0
-            for subfield in field["fields"]:
-                width += int(subfield["width"])
+            width = sum(int(subfield["width"]) for subfield in field["fields"])
             assert(width == 8)
 
     return obj
@@ -716,7 +723,7 @@ def main():
         return 1
 
     definitions = yaml.load(open("scripts/dnp3-gen/dnp3-objects.yaml"))
-    print("Loaded %s objects." % (len(definitions["objects"])))
+    print(f'Loaded {len(definitions["objects"])} objects.')
     definitions["objects"] = map(preprocess_object, definitions["objects"])
 
     # Filter out unimplemented objects.

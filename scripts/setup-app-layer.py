@@ -20,7 +20,7 @@ progname = os.path.basename(sys.argv[0])
 
 def fail_if_exists(filename):
     if os.path.exists(filename):
-        raise SetupError("%s already exists" % (filename))
+        raise SetupError(f"{filename} already exists")
 
 def common_copy_templates(proto, pairs, replacements=()):
     upper = proto.upper()
@@ -32,31 +32,30 @@ def common_copy_templates(proto, pairs, replacements=()):
     for (src, dst) in pairs:
         dstdir = os.path.dirname(dst)
         if not os.path.exists(dstdir):
-            print("Creating directory %s." % (dstdir))
+            print(f"Creating directory {dstdir}.")
             os.makedirs(dstdir)
-        print("Generating %s." % (dst))
-        output = open(dst, "w")
-        with open(src) as template_in:
-            skip = False
-            for line in template_in:
-                if line.find("TEMPLATE_START_REMOVE") > -1:
-                    skip = True
-                    continue
-                elif line.find("TEMPLATE_END_REMOVE") > -1:
-                    skip = False
-                    continue
-                if skip:
-                    continue
+        print(f"Generating {dst}.")
+        with open(dst, "w") as output:
+            with open(src) as template_in:
+                skip = False
+                for line in template_in:
+                    if line.find("TEMPLATE_START_REMOVE") > -1:
+                        skip = True
+                        continue
+                    elif line.find("TEMPLATE_END_REMOVE") > -1:
+                        skip = False
+                        continue
+                    if skip:
+                        continue
 
-                for (old, new) in replacements:
-                    line = line.replace(old, new)
+                    for (old, new) in replacements:
+                        line = line.replace(old, new)
 
-                line = re.sub("TEMPLATE(_RUST)?", upper, line)
-                line = re.sub("template(-rust)?", lower, line)
-                line = re.sub("Template(Rust)?", proto, line)
+                    line = re.sub("TEMPLATE(_RUST)?", upper, line)
+                    line = re.sub("template(-rust)?", lower, line)
+                    line = re.sub("Template(Rust)?", proto, line)
 
-                output.write(line)
-        output.close()
+                    output.write(line)
 
 def copy_app_layer_templates(proto, rust):
     lower = proto.lower()
@@ -64,24 +63,28 @@ def copy_app_layer_templates(proto, rust):
 
     if rust:
         pairs = (
-            ("src/app-layer-template-rust.c",
-             "src/app-layer-%s.c" % (lower)),
-            ("src/app-layer-template-rust.h",
-             "src/app-layer-%s.h" % (lower)),
-            ("rust/src/applayertemplate/mod.rs",
-             "rust/src/applayer%s/mod.rs" % (lower)),
-            ("rust/src/applayertemplate/template.rs",
-             "rust/src/applayer%s/%s.rs" % (lower, lower)),
-            ("rust/src/applayertemplate/parser.rs",
-             "rust/src/applayer%s/parser.rs" % (lower)),
+            ("src/app-layer-template-rust.c", f"src/app-layer-{lower}.c"),
+            ("src/app-layer-template-rust.h", f"src/app-layer-{lower}.h"),
+            (
+                "rust/src/applayertemplate/mod.rs",
+                f"rust/src/applayer{lower}/mod.rs",
+            ),
+            (
+                "rust/src/applayertemplate/template.rs",
+                f"rust/src/applayer{lower}/{lower}.rs",
+            ),
+            (
+                "rust/src/applayertemplate/parser.rs",
+                f"rust/src/applayer{lower}/parser.rs",
+            ),
         )
+
     else:
-        pairs = (
-            ("src/app-layer-template.c",
-             "src/app-layer-%s.c" % (lower)),
-            ("src/app-layer-template.h",
-             "src/app-layer-%s.h" % (lower)),
+        pairs = ("src/app-layer-template.c", f"src/app-layer-{lower}.c"), (
+            "src/app-layer-template.h",
+            f"src/app-layer-{lower}.h",
         )
+
 
     common_copy_templates(proto, pairs)
 
@@ -97,7 +100,7 @@ def patch_makefile_am(protoname):
 
 def patch_rust_lib_rs(protoname):
     filename = "rust/src/lib.rs"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
@@ -108,8 +111,8 @@ def patch_rust_lib_rs(protoname):
 
 def patch_rust_applayer_mod_rs(protoname):
     lower = protoname.lower()
-    filename = "rust/src/applayer%s/mod.rs" % (lower)
-    print("Patching %s." % (filename))
+    filename = f"rust/src/applayer{lower}/mod.rs"
+    print(f"Patching {filename}.")
     output = io.StringIO()
     done = False
     with open(filename) as infile:
@@ -122,7 +125,7 @@ def patch_rust_applayer_mod_rs(protoname):
 
 def patch_app_layer_protos_h(protoname):
     filename = "src/app-layer-protos.h"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
@@ -133,7 +136,7 @@ def patch_app_layer_protos_h(protoname):
 
 def patch_app_layer_protos_c(protoname):
     filename = "src/app-layer-protos.c"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
 
     # Read in all the lines as we'll be doing some multi-line
@@ -160,7 +163,7 @@ def patch_app_layer_protos_c(protoname):
 
 def patch_app_layer_detect_proto_c(proto):
     filename = "src/app-layer-detect-proto.c"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     inlines = open(filename).readlines()
     for i, line in enumerate(inlines):
@@ -172,7 +175,7 @@ def patch_app_layer_detect_proto_c(proto):
 
 def patch_app_layer_parser_c(proto):
     filename = "src/app-layer-parser.c"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     inlines = open(filename).readlines()
     for line in inlines:
@@ -185,19 +188,21 @@ def patch_app_layer_parser_c(proto):
 
 def patch_suricata_yaml_in(proto):
     filename = "suricata.yaml.in"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     inlines = open(filename).readlines()
     for i, line in enumerate(inlines):
 
-        if line.find("protocols:") > -1:
-            if inlines[i-1].find("app-layer:") > -1:
-                output.write(line)
-                output.write("""    %s:
+        if (
+            line.find("protocols:") > -1
+            and inlines[i - 1].find("app-layer:") > -1
+        ):
+            output.write(line)
+            output.write("""    %s:
       enabled: yes
 """ % (proto.lower()))
-                # Skip writing out the current line, already done.
-                continue
+            # Skip writing out the current line, already done.
+            continue
 
         output.write(line)
 
@@ -205,14 +210,14 @@ def patch_suricata_yaml_in(proto):
 
 def logger_patch_suricata_yaml_in(proto):
     filename = "suricata.yaml.in"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     inlines = open(filename).readlines()
 
     # This is a bit tricky. We want to find the first occurrence of
     # "types:" after "eve-log:".
     n = 0
-    for i, line in enumerate(inlines):
+    for line in inlines:
         if n == 0 and line.find("eve-log:") > -1:
             n += 1
         if n == 1 and line.find("types:") > -1:
@@ -226,7 +231,7 @@ def logger_patch_suricata_yaml_in(proto):
 
 def logger_patch_suricata_common_h(proto):
     filename = "src/suricata-common.h"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
@@ -237,7 +242,7 @@ def logger_patch_suricata_common_h(proto):
 
 def logger_patch_output_c(proto):
     filename = "src/output.c"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     inlines = open(filename).readlines()
     for i, line in enumerate(inlines):
@@ -254,26 +259,26 @@ def logger_copy_templates(proto, rust):
 
     if rust:
         pairs = (
-            ("src/output-json-template-rust.h",
-             "src/output-json-%s.h" % (lower)),
-            ("src/output-json-template-rust.c",
-             "src/output-json-%s.c" % (lower)),
-            ("rust/src/applayertemplate/logger.rs",
-             "rust/src/applayer%s/logger.rs" % (lower)),
+            ("src/output-json-template-rust.h", f"src/output-json-{lower}.h"),
+            ("src/output-json-template-rust.c", f"src/output-json-{lower}.c"),
+            (
+                "rust/src/applayertemplate/logger.rs",
+                f"rust/src/applayer{lower}/logger.rs",
+            ),
         )
+
     else:
-        pairs = (
-            ("src/output-json-template.h",
-             "src/output-json-%s.h" % (lower)),
-            ("src/output-json-template.c",
-             "src/output-json-%s.c" % (lower)),
+        pairs = ("src/output-json-template.h", f"src/output-json-{lower}.h"), (
+            "src/output-json-template.c",
+            f"src/output-json-{lower}.c",
         )
+
 
     common_copy_templates(proto, pairs)
 
 def logger_patch_makefile_am(protoname):
     filename = "src/Makefile.am"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
@@ -284,7 +289,7 @@ def logger_patch_makefile_am(protoname):
 
 def logger_patch_util_profiling_c(proto):
     filename = "src/util-profiling.c"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
@@ -299,66 +304,79 @@ def detect_copy_templates(proto, buffername, rust):
 
     if rust:
         pairs = (
-            ("src/detect-template-rust-buffer.h",
-             "src/detect-%s-%s.h" % (lower, buffername_lower)),
-            ("src/detect-template-rust-buffer.c",
-             "src/detect-%s-%s.c" % (lower, buffername_lower)),
+            "src/detect-template-rust-buffer.h",
+            f"src/detect-{lower}-{buffername_lower}.h",
+        ), (
+            "src/detect-template-rust-buffer.c",
+            f"src/detect-{lower}-{buffername_lower}.c",
         )
+
         replacements = (
-            ("TEMPLATE_RUST_BUFFER", "%s_%s" % (
-                proto.upper(), buffername.upper())),
-            ("template-rust-buffer", "%s-%s" % (
-                proto.lower(), buffername.lower())),
-            ("template_rust_buffer", "%s_%s" % (
-                proto.lower(), buffername.lower())),
-            ("TemplateRustBuffer", "%s%s" % (proto, buffername)),
+            ("TEMPLATE_RUST_BUFFER", f"{proto.upper()}_{buffername.upper()}"),
+            ("template-rust-buffer", f"{proto.lower()}-{buffername.lower()}"),
+            ("template_rust_buffer", f"{proto.lower()}_{buffername.lower()}"),
+            ("TemplateRustBuffer", f"{proto}{buffername}"),
         )
+
     else:
         pairs = (
-            ("src/detect-template-buffer.h",
-             "src/detect-%s-%s.h" % (lower, buffername_lower)),
-            ("src/detect-template-buffer.c",
-             "src/detect-%s-%s.c" % (lower, buffername_lower)),
-            ("src/tests/detect-template-buffer.c",
-             "src/tests/detect-%s-%s.c" % (lower, buffername_lower)),
+            (
+                "src/detect-template-buffer.h",
+                f"src/detect-{lower}-{buffername_lower}.h",
+            ),
+            (
+                "src/detect-template-buffer.c",
+                f"src/detect-{lower}-{buffername_lower}.c",
+            ),
+            (
+                "src/tests/detect-template-buffer.c",
+                f"src/tests/detect-{lower}-{buffername_lower}.c",
+            ),
         )
+
         replacements = (
-            ("TEMPLATE_BUFFER", "%s_%s" % (proto.upper(), buffername.upper())),
-            ("template-buffer", "%s-%s" % (proto.lower(), buffername.lower())),
-            ("template_buffer", "%s_%s" % (proto.lower(), buffername.lower())),
-            ("TemplateBuffer", "%s%s" % (proto, buffername)),
+            ("TEMPLATE_BUFFER", f"{proto.upper()}_{buffername.upper()}"),
+            ("template-buffer", f"{proto.lower()}-{buffername.lower()}"),
+            ("template_buffer", f"{proto.lower()}_{buffername.lower()}"),
+            ("TemplateBuffer", f"{proto}{buffername}"),
         )
+
 
     common_copy_templates(proto, pairs, replacements)
 
 def detect_patch_makefile_am(protoname, buffername):
     filename = "src/Makefile.am"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
             if line.lstrip().startswith("detect-template-buffer."):
-                new = line.replace("template-buffer", "%s-%s" % (
-                    protoname.lower(), buffername.lower()))
+                new = line.replace(
+                    "template-buffer",
+                    f"{protoname.lower()}-{buffername.lower()}",
+                )
+
                 output.write(new)
             output.write(line)
     open(filename, "w").write(output.getvalue())
 
 def detect_patch_detect_engine_register_c(protoname, buffername):
     filename = "src/detect-engine-register.c"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
 
             if line.find("detect-template-buffer.h") > -1:
-                new = line.replace("template-buffer", "%s-%s" % (
-                    protoname.lower(), buffername.lower()))
+                new = line.replace(
+                    "template-buffer",
+                    f"{protoname.lower()}-{buffername.lower()}",
+                )
+
                 output.write(new)
 
             if line.find("DetectTemplateBufferRegister") > -1:
-                new = line.replace("TemplateBuffer", "%s%s" % (
-                    protoname, buffername))
+                new = line.replace("TemplateBuffer", f"{protoname}{buffername}")
                 output.write(new)
 
             output.write(line)
@@ -366,14 +384,17 @@ def detect_patch_detect_engine_register_c(protoname, buffername):
 
 def detect_patch_detect_engine_register_h(protoname, buffername):
     filename = "src/detect-engine-register.h"
-    print("Patching %s." % (filename))
+    print(f"Patching {filename}.")
     output = io.StringIO()
     with open(filename) as infile:
         for line in infile:
 
             if line.find("DETECT_AL_TEMPLATE_BUFFER") > -1:
-                new = line.replace("TEMPLATE_BUFFER", "%s_%s" % (
-                    protoname.upper(), buffername.upper()))
+                new = line.replace(
+                    "TEMPLATE_BUFFER",
+                    f"{protoname.upper()}_{buffername.upper()}",
+                )
+
                 output.write(new)
 
             output.write(line)
@@ -381,10 +402,10 @@ def detect_patch_detect_engine_register_h(protoname, buffername):
 
 def proto_exists(proto):
     upper = proto.upper()
-    for line in open("src/app-layer-protos.h"):
-        if line.find("ALPROTO_%s," % (upper)) > -1:
-            return True
-    return False
+    return any(
+        line.find(f"ALPROTO_{upper},") > -1
+        for line in open("src/app-layer-protos.h")
+    )
 
 epilog = """
 This script will provision a new app-layer parser for the protocol
@@ -445,9 +466,8 @@ def main():
         logger = args.logger
         detect = args.detect
 
-    if detect:
-        if args.buffer is None:
-            raise SetupError("--detect requires a buffer name")
+    if detect and args.buffer is None:
+        raise SetupError("--detect requires a buffer name")
 
     # Make sure we are in the correct directory.
     if os.path.exists("./suricata.c"):
@@ -458,7 +478,7 @@ def main():
 
     if parser:
         if proto_exists(proto):
-            raise SetupError("protocol already exists: %s" % (proto))
+            raise SetupError(f"protocol already exists: {proto}")
         copy_app_layer_templates(proto, args.rust)
         if args.rust:
             patch_rust_lib_rs(proto)
@@ -471,7 +491,7 @@ def main():
 
     if logger:
         if not proto_exists(proto):
-            raise SetupError("no app-layer parser exists for %s" % (proto))
+            raise SetupError(f"no app-layer parser exists for {proto}")
         logger_copy_templates(proto, args.rust)
         if args.rust:
             patch_rust_applayer_mod_rs(proto)
@@ -483,7 +503,7 @@ def main():
 
     if detect:
         if not proto_exists(proto):
-            raise SetupError("no app-layer parser exists for %s" % (proto))
+            raise SetupError(f"no app-layer parser exists for {proto}")
         detect_copy_templates(proto, args.buffer, args.rust)
         detect_patch_makefile_am(proto, args.buffer)
         detect_patch_detect_engine_register_c(proto, args.buffer)
@@ -491,57 +511,57 @@ def main():
 
     if parser:
         if args.rust:
-            print("""
+                print("""
 An application detector and parser for the protocol %(proto)s have
 now been setup in the files:
 
     rust/src/applayer%(proto_lower)s/mod.rs
     rust/src/applayer%(proto_lower)s/parser.rs""" % {
-            "proto": proto,
-            "proto_lower": proto.lower(),
-        })
+                "proto": proto,
+                "proto_lower": proto.lower(),
+            })
         else:
-            print("""
+                print("""
 An application detector and parser for the protocol %(proto)s have
 now been setup in the files:
 
     src/app-layer-%(proto_lower)s.h
     src/app-layer-%(proto_lower)s.c""" % {
-            "proto": proto,
-            "proto_lower": proto.lower(),
-        })
+                "proto": proto,
+                "proto_lower": proto.lower(),
+            })
 
     if logger:
         if args.rust:
-            print("""
+                print("""
 A JSON application layer transaction logger for the protocol
 %(proto)s has now been set in the file:
 
     rust/src/applayer%(proto_lower)s/logger.rs""" % {
-            "proto": proto,
-            "proto_lower": proto.lower(),
-        })
+                "proto": proto,
+                "proto_lower": proto.lower(),
+            })
         else:
-            print("""
+                print("""
 A JSON application layer transaction logger for the protocol
 %(proto)s has now been set in the files:
 
     src/output-json-%(proto_lower)s.h
     src/output-json-%(proto_lower)s.c""" % {
-            "proto": proto,
-            "proto_lower": proto.lower(),
-        })
+                "proto": proto,
+                "proto_lower": proto.lower(),
+            })
 
-    if detect:
-        print("""
+        if detect:
+            print("""
 The following files have been created and linked into the build:
 
     detect-%(protoname_lower)s-%(buffername_lower)s.h
     detect-%(protoname_lower)s-%(buffername_lower)s.c
 """ % {
-    "protoname_lower": proto.lower(),
-    "buffername_lower": args.buffer.lower(),
-})
+        "protoname_lower": proto.lower(),
+        "buffername_lower": args.buffer.lower(),
+    })
 
     if parser or logger:
         print("""
@@ -552,5 +572,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except SetupError as err:
-        print("error: %s" % (err))
+        print(f"error: {err}")
         sys.exit(1)

@@ -49,7 +49,7 @@ class SuriColourLogHandler(logging.StreamHandler):
                                                          local_time.tm_hour,
                                                          local_time.tm_min,
                                                          local_time.tm_sec)
-        return "%s" % (formatted_time)
+        return f"{formatted_time}"
 
     def emit(self, record):
 
@@ -77,5 +77,5 @@ class SuriColourLogHandler(logging.StreamHandler):
     @staticmethod
     def mask_secrets(msg):
         for secret in secrets:
-            msg = msg.replace(secret, "<%s>" % secrets[secret])
+            msg = msg.replace(secret, f"<{secrets[secret]}>")
         return msg

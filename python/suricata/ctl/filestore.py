@@ -59,13 +59,13 @@ def parse_age(age):
     matched_age = re.match(r"(\d+)\s*(\w+)", age)
     if not matched_age:
         raise InvalidAgeFormatError(age)
-    val = int(matched_age.group(1))
-    unit = matched_age.group(2)
+    val = int(matched_age[1])
+    unit = matched_age[2]
     ts_units = ["s", "m", "h", "d"]
     try:
         idx = ts_units.index(unit)
     except ValueError:
-        raise InvalidAgeFormatError("bad unit: %s" % (unit))
+        raise InvalidAgeFormatError(f"bad unit: {unit}")
     multiplier = 60 ** idx if idx != 3 else 24 * 60 ** 2
     return val * multiplier
 
@@ -97,7 +97,7 @@ def perform_sanity_checks(args):
             }
     for val, msg in err_msg.items():
         if not getattr(args, val):
-            print("Error: {}".format(msg), file=sys.stderr)
+            print(f"Error: {msg}", file=sys.stderr)
             sys.exit(1)
     required_dirs = ["tmp", "00", "ff"]
     for required_dir in required_dirs:

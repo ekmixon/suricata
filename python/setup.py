@@ -14,9 +14,8 @@ if os.path.exists("../configure.ac"):
     with open("../configure.ac", "r") as conf:
         for line in conf:
             if line.find("AC_INIT") > 1:
-                m = re.search("AC_INIT\(\[suricata\],\[(\d.+)\]\)", line)
-                if m:
-                    version = m.group(1)
+                if m := re.search("AC_INIT\(\[suricata\],\[(\d.+)\]\)", line):
+                    version = m[1]
                     break
                 else:
                     print("error: failed to parse Suricata version from: %s" % (

@@ -128,14 +128,13 @@ class SuricataSC:
 
     def send_command(self, command, arguments=None):
         if command not in self.cmd_list and command != 'command-list':
-            raise SuricataCommandException("Command not found: {}".format(command))
+            raise SuricataCommandException(f"Command not found: {command}")
 
-        cmdmsg = {}
-        cmdmsg['command'] = command
+        cmdmsg = {'command': command}
         if arguments:
             cmdmsg['arguments'] = arguments
         if self.verbose:
-            print("SND: " + json.dumps(cmdmsg))
+            print(f"SND: {json.dumps(cmdmsg)}")
         cmdmsg_str = json.dumps(cmdmsg) + "\n"
         if sys.version < '3':
             self.socket.send(cmdmsg_str)
@@ -143,15 +142,12 @@ class SuricataSC:
             self.socket.send(bytes(cmdmsg_str, 'iso-8859-1'))
 
         ready = select.select([self.socket], [], [], 600)
-        if ready[0]:
-            cmdret = self.json_recv()
-        else:
-            cmdret = None
+        cmdret = self.json_recv() if ready[0] else None
         if not cmdret:
             raise SuricataReturnException("Unable to get message from server")
 
         if self.verbose:
-            print("RCV: "+ json.dumps(cmdret))
+            print(f"RCV: {json.dumps(cmdret)}")
 
         return cmdret
 
@@ -173,19 +169,15 @@ class SuricataSC:
             self.socket.send(bytes(json.dumps({"version": VERSION}), 'iso-8859-1'))
 
         ready = select.select([self.socket], [], [], 600)
-        if ready[0]:
-            cmdret = self.json_recv()
-        else:
-            cmdret = None
-
+        cmdret = self.json_recv() if ready[0] else None
         if not cmdret:
             raise SuricataReturnException("Unable to get message from server")
 
         if self.verbose:
-            print("RCV: "+ json.dumps(cmdret))
+            print(f"RCV: {json.dumps(cmdret)}")
 
         if cmdret["return"] == "NOK":
-            raise SuricataReturnException("Error: %s" % (cmdret["message"]))
+            raise SuricataReturnException(f'Error: {cmdret["message"]}')
 
         cmdret = self.send_command("command-list")
 
@@ -202,8 +194,11 @@ class SuricataSC:
         full_cmd = command.split()
         cmd = full_cmd[0]
         cmd_specs = argsd[cmd]
-        required_args_count = len([d["required"] for d in cmd_specs if d["required"] and not "val" in d])
-        arguments = dict()
+        required_args_count = len(
+            [d["required"] for d in cmd_specs if d["required"] and "val" not in d]
+        )
+
+        arguments = {}
         for c, spec in enumerate(cmd_specs, 1):
             spec_type = str if "type" not in spec else spec["type"]
             if spec["required"]:
@@ -214,10 +209,10 @@ class SuricataSC:
                     arguments[spec["name"]] = spec_type(full_cmd[c])
                 except IndexError:
                     phrase = " at least" if required_args_count != len(cmd_specs) else ""
-                    msg = "Missing arguments: expected{} {}".format(phrase, required_args_count)
+                    msg = f"Missing arguments: expected{phrase} {required_args_count}"
                     raise SuricataCommandException(msg)
                 except ValueError as ve:
-                    raise SuricataCommandException("Erroneous arguments: {}".format(ve))
+                    raise SuricataCommandException(f"Erroneous arguments: {ve}")
             elif c < len(full_cmd):
                 arguments[spec["name"]] = spec_type(full_cmd[c])
         return cmd, arguments
@@ -225,11 +220,10 @@ class SuricataSC:
     def parse_command(self, command):
         arguments = None
         cmd = command.split()[0] if command else None
-        if cmd in self.cmd_list:
-            if cmd in self.fn_commands:
-                cmd, arguments = getattr(self, "execute")(command=command)
-        else:
-            raise SuricataCommandException("Unknown command {}".format(command))
+        if cmd not in self.cmd_list:
+            raise SuricataCommandException(f"Unknown command {command}")
+        if cmd in self.fn_commands:
+            cmd, arguments = getattr(self, "execute")(command=command)
         return cmd, arguments
 
     def interactive(self):
@@ -265,9 +259,8 @@ class SuricataSC:
                 #decode json message
                 if cmdret["return"] == "NOK":
                     print("Error:")
-                    print(json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': ')))
                 else:
                     print("Success:")
-                    print(json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': ')))
+                print(json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': ')))
         except KeyboardInterrupt:
             print("[!] Interrupted")
